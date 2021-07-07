@@ -12,6 +12,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Catalog1.Repositories;
+using Catalog1.Settings;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Driver;
 
 namespace Catalog1
 {
@@ -27,7 +32,14 @@ namespace Catalog1
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<IItemsRepository, InMemItemsRepository>();
+            BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));
+            BsonSerializer.RegisterSerializer(new DateTimeOffsetSerializer(BsonType.String));
+            services.AddSingleton<IMongoClient>(serviceProvider =>
+                                                {
+                                                    var settings = Configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
+                                                    return new MongoClient(settings.ConnectionString);
+                                                });
+            services.AddSingleton<IItemsRepository, MongoDBItemsRepository>();
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
